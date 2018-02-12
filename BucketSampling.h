@@ -436,7 +436,8 @@ private:
 	}
 public:
 	void removeNode(int nodeId) {
-		assert(nodes[nodeId].degree != 0);
+		if (nodes[nodeId].degree == 0) return;
+
 		sumOfDesiredMemberships -= nodes[nodeId].degree;
 		removeNode(nodeId, true);
 		verifyInvariants(true);
