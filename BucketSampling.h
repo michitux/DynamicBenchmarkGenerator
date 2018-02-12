@@ -114,6 +114,15 @@ private:
 #endif
 	}
 public:
+	/**
+	 * Initialize the sampling data structure.
+	 *
+	 * @param n The number of initial nodes.
+	 * @param minSlots The minimum number of memberships per node.
+	 * @param maxSlots The maximum number of memberships per node.
+	 * @param exponent The powerlaw exponent of the membership distribution.
+	 * @param seed Seed for the random number generator used for various random decisions.
+	 */
 	BucketSampling(int n, int minSlots, int maxSlots, double exponent, uint64_t seed) : pl_generator(minSlots, maxSlots, exponent), degree_distribution(maxSlots + 1, 0), nodes_with_fractional_slots_for_degree(maxSlots + 1), random_engine(seed), sumOfDesiredMemberships(0) {
 		pl_generator.run();
 
@@ -126,6 +135,14 @@ public:
 		}
 	}
 
+	/**
+	 * Sample @a communitySize nodes from the available memberships.
+	 *
+	 * @note This does not modify the distribution. Run
+	 * BucketSampling::assignCommunity() for every node to actually take the slots.
+	 * @param communitySize The number of nodes to sample.
+	 * @return The sampled nodes.
+	 */
 	std::vector<int> birthCommunityNodes(int communitySize) {
 		std::vector<int> result;
 
@@ -172,6 +189,11 @@ public:
 		return result;
 	}
 
+	/**
+	 * Assign the node @a nodeId to a community, i.e., take a slot from it.
+	 *
+	 * @param nodeId The node to assign.
+	 */
 	void assignCommunity(int nodeId) {
 		node_data& node = nodes[nodeId];
 
@@ -194,6 +216,14 @@ public:
 		verifyInvariants();
 	}
 
+	/**
+	 * Remove the node @a nodeId from a community, i.e., assign a slot to it.
+	 *
+	 * This has no effect if the node has already been deleted, i.e.,
+	 * if its desired number of memberships is 0.
+	 *
+	 * @param nodeId The node to remove from a community.
+	 */
 	void leaveCommunity(int nodeId) {
 		node_data& node = nodes[nodeId];
 
@@ -318,10 +348,33 @@ private:
 
 public:
 
+	/**
+	 * Add a new node with a randomly sampled number of desired memberships.
+	 *
+	 * This adds exactly 1.2 times the number of desired
+	 * memberships slots to the sampling data structure. For every
+	 * 5 nodes of the same number of desired membership, an
+	 * additional 6th node is added internally, so this may
+	 * actually add two nodes.
+	 *
+	 * @return The id of the added node.
+	 */
 	int addNode() {
 		return addNode(pl_generator.getDegree());
 	}
 
+	/**
+	 * Add a new node with the given number of desired memberships.
+	 *
+	 * This adds exactly 1.2 times the number of desired
+	 * memberships slots to the sampling data structure. For every
+	 * 5 nodes of the same number of desired membership, an
+	 * additional 6th node is added internally, so this may
+	 * actually add two nodes.
+	 *
+	 * @param degree The number of desired memberships of the node to add.
+	 * @return The id of the added node.
+	 */
 	int addNode(int degree) {
 		int u = addNode(degree, true);
 		sumOfDesiredMemberships += degree;
@@ -435,6 +488,17 @@ private:
 		}
 	}
 public:
+	/**
+	 * Remove a node from the sampling data structure.
+	 *
+	 * This removes exactly 1.2 times the number of desired
+	 * memberships of the node slots from the sampling data
+	 * structure. This may remove an additional node with the same
+	 * number of desired memberships. This does nothing if the
+	 * node has already been deleted.
+	 *
+	 * @param nodeId The id of the node to remove.
+	 */
 	void removeNode(int nodeId) {
 		if (nodes[nodeId].degree == 0) return;
 
@@ -443,14 +507,41 @@ public:
 		verifyInvariants(true);
 	}
 
+	/**
+	 * Get the total number of nodes. Some of these nodes maybe deleted.
+	 *
+	 * All node ids are between 0 and getNumberOfNodes()-1.
+	 *
+	 * @return The total number of nodes.
+	 */
 	int getNumberOfNodes() const {
 		return nodes.size();
 	}
 
+	/**
+	 * Get the sum of desired memberships.
+	 *
+	 * This only includes explicitly added nodes and not nodes
+	 * added due to the oversampling.
+	 *
+	 * @return The sum of desired memberships.
+	 */
 	int getSumOfDesiredMemberships() const {
 		return sumOfDesiredMemberships;
 	}
 
+	/**
+	 * Get the number of desired memberships of a node.
+	 *
+	 * This does not include oversampling. However, if due to the
+	 * oversampling additional nodes are added, they will also
+	 * report a positive number of desired memberships even though
+	 * they are not counted for @a getSumOfDesiredMemberships().
+	 * This reports 0 for deleted nodes.
+	 *
+	 * @param nodeId The id of the node.
+	 * @return The number of desired memberships of the node.
+	 */
 	int getDesiredMemberships(int nodeId) const {
 		return nodes[nodeId].degree;
 	}
