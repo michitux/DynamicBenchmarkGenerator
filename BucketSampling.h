@@ -319,10 +319,7 @@ private:
 public:
 
 	int addNode() {
-		int u = addNode(pl_generator.getDegree(), true);
-		sumOfDesiredMemberships += nodes[u].degree;
-		verifyInvariants(true);
-		return u;
+		return addNode(pl_generator.getDegree());
 	}
 
 	int addNode(int degree) {
