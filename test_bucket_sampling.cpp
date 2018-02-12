@@ -51,5 +51,12 @@ int main() {
 	printDistribution(desiredMemberships);
 	printDistribution(actualMemberships);
 
+	// try removing all nodes again
+	for (int i = 0; i < sampler.getNumberOfNodes(); ++i) {
+		if (sampler.getDesiredMemberships(i) > 0) {
+			sampler.removeNode(i);
+		}
+	}
+
 	return 0;
 };

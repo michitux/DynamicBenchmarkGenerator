@@ -6,6 +6,7 @@
 #include <array>
 #include <iostream>
 #include <random>
+#include <algorithm>
 
 #include "PowerlawDegreeSequence.h"
 
@@ -48,6 +49,8 @@ private:
 		std::array<int, oversample_fraction> num_fractional_slots;
 		num_fractional_slots.fill(0);
 
+		int num_existing_nodes = 0;
+
 		for (int u = 0; u < nodes.size(); ++u) {
 			node_data& node = nodes[u];
 
@@ -55,6 +58,8 @@ private:
 				assert(node.full_slot_positions.empty());
 				assert(node.current_fractional_slot <= 0);
 			} else {
+				++num_existing_nodes;
+
 				if (node.current_fractional_slot < 0) {
 					assert(node.full_slot_positions.empty());
 				}
@@ -70,6 +75,9 @@ private:
 				if (node.current_fractional_slot > 0) {
 					++num_fractional_slots[node.current_fractional_slot];
 					assert(fractional_slots[node.current_fractional_slot][node.fractional_slot_position] == u);
+
+					auto& nodes_with_frac = nodes_with_fractional_slots_for_degree[node.degree];
+					assert(std::find(nodes_with_frac.begin(), nodes_with_frac.end(), u) != nodes_with_frac.end());
 				}
 			}
 		}
@@ -102,7 +110,7 @@ private:
 			membership_sum += degree_distribution[i];
 		}
 
-		assert(membership_sum == nodes.size());
+		assert(membership_sum == num_existing_nodes);
 #endif
 	}
 public:
@@ -195,13 +203,7 @@ public:
 		if (node.current_fractional_slot < 0) {
 			assert(node.full_slot_positions.empty());
 
-			node.current_fractional_slot += oversample_fraction;
-
-			if (node.current_fractional_slot > 0) {
-				std::vector<int>& frac_slots = fractional_slots[node.current_fractional_slot];
-				node.fractional_slot_position = frac_slots.size();
-				frac_slots.push_back(nodeId);
-			}
+			addFraction(nodeId, oversample_fraction);
 		} else {
 			int slot_pos = node.full_slot_positions.size();
 			node.full_slot_positions.push_back(full_slots.size());
@@ -241,8 +243,9 @@ private:
 		node.current_fractional_slot += fraction;
 
 		if (node.current_fractional_slot > 0) {
-			node.fractional_slot_position = fractional_slots[node.current_fractional_slot].size();
-			fractional_slots[node.current_fractional_slot].push_back(nodeId);
+			std::vector<int>& frac_slots = fractional_slots[node.current_fractional_slot];
+			node.fractional_slot_position = frac_slots.size();
+			frac_slots.push_back(nodeId);
 		}
 	}
 
@@ -277,8 +280,12 @@ private:
 
 				// create a new node with exactly degree slots
 				addNode(degree, false);
+
+				// no fractional slot for this node
+				u_fractional_slot = 0;
 			} else {
 				num_full_slots += u_additional_full_slots;
+				addFraction(u, u_fractional_slot);
 
 				bool found = false;
 				for (int& v : nodes_with_fractional_slots) {
@@ -302,7 +309,6 @@ private:
 			leaveCommunity(u);
 		}
 
-		addFraction(u, u_fractional_slot);
 
 		assert(node.full_slot_positions.size() == num_full_slots);
 		assert(node.current_fractional_slot == u_fractional_slot);
@@ -331,13 +337,16 @@ private:
 		node_data& node = nodes[nodeId];
 
 		// make sure there are no more slots for this node
-		while (node.fractional_slot_position >= 0) {
+		while (node.current_fractional_slot >= 0) {
 			assignCommunity(nodeId);
 		}
 
-		--degree_distribution[node.degree];
+		const int degree = node.degree;
 
-		auto& nodes_with_fractional_slots = nodes_with_fractional_slots_for_degree[node.degree];
+		--degree_distribution[degree];
+		node.degree = 0;
+
+		auto& nodes_with_fractional_slots = nodes_with_fractional_slots_for_degree[degree];
 		bool hadFraction = false;
 		int nodesWithFraction = 0;
 		for (int& v : nodes_with_fractional_slots) {
@@ -349,11 +358,13 @@ private:
 			}
 		}
 
-		// if node had a fraction, we are basically done.
+		assert(withFraction || !hadFraction);
+
+		// if node had a fraction, we are
 		// Otherwise, we need to get the fractional part from somewhere else.
 		if (!hadFraction && withFraction) {
-			int u_fractional_slot = node.degree % oversample_fraction;
-			int u_additional_full_slots = node.degree / oversample_fraction;
+			int u_fractional_slot = degree % oversample_fraction;
+			int u_additional_full_slots = degree / oversample_fraction;
 
 			if (nodesWithFraction > 0) {
 				// if there is another node with a fractional part, it is easy, too:
@@ -387,13 +398,13 @@ private:
 				std::vector<int> nodes_of_degree;
 
 				for (int u = 0; u < nodes.size(); ++u) {
-					if (nodes[u].degree == node.degree && u != nodeId) {
+					if (nodes[u].degree == degree) {
 						nodes_of_degree.push_back(u);
 					}
 				}
 
 				auto pop_random_node = [&]() -> int {
-					std::uniform_int_distribution<int> sample(0, nodes_of_degree.size());
+					std::uniform_int_distribution<int> sample(0, nodes_of_degree.size() - 1);
 					int pos = sample(random_engine);
 					std::swap(nodes_of_degree[pos], nodes_of_degree.back());
 					int x = nodes_of_degree.back();
@@ -401,15 +412,21 @@ private:
 					return x;
 				};
 
-				assert(nodes_of_degree.size() > oversample_fraction);
+				assert(nodes_of_degree.size() >= oversample_fraction);
+
+				verifyInvariants();
 
 				removeNode(pop_random_node(), false);
+
+				verifyInvariants();
 
 				// add a fraction to oversample_fraction nodes of nodes_of_degree
 				for (int& u : nodes_with_fractional_slots) {
 					assert(u == -1);
 
 					u = pop_random_node();
+
+					assert(nodes[u].degree == degree);
 
 					for (int j = 0; j < u_additional_full_slots; ++j) {
 						leaveCommunity(u);
@@ -419,12 +436,11 @@ private:
 				}
 			}
 		}
-
-		node.degree = 0;
 	}
 public:
 	void removeNode(int nodeId) {
-		sumOfDesiredMemberships += nodes[nodeId].degree;
+		assert(nodes[nodeId].degree != 0);
+		sumOfDesiredMemberships -= nodes[nodeId].degree;
 		removeNode(nodeId, true);
 		verifyInvariants(true);
 	}
