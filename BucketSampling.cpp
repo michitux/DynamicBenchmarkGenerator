@@ -358,15 +358,25 @@ void BucketSampling::removeNode(int nodeId, bool withFraction) {
 			// b) find oversample_fraction-1 nodes of the same degree that then get a fraction!
 			assert(nodes_by_memberships[degree].size() >= oversample_fraction);
 			std::vector<int> sampled_nodes;
-			sampled_nodes.reserve(oversample_fraction);
 
-			std::uniform_int_distribution<int> sample(0, nodes_by_memberships[degree].size() - 1);
-			while (sampled_nodes.size() < oversample_fraction) {
-				const int pos = sample(random_engine);
-				const int u = nodes_by_memberships[degree][pos];
+			// if we have exactly as many nodes as we want, just shuffle them
+			if (nodes_by_memberships[degree].size() == oversample_fraction) {
+				sampled_nodes = nodes_by_memberships[degree];
+				std::shuffle(sampled_nodes.begin(), sampled_nodes.end(), random_engine);
+			} else {
+				// now we should have at least twice as many nodes
+				// as we need, so in expectation at least every second
+				// sampled node has not been sampled yet.
+				assert(nodes_by_memberships[degree].size() >= 2 * oversample_fraction);
+				sampled_nodes.reserve(oversample_fraction);
+				std::uniform_int_distribution<int> sample(0, nodes_by_memberships[degree].size() - 1);
+				while (sampled_nodes.size() < oversample_fraction) {
+					const int pos = sample(random_engine);
+					const int u = nodes_by_memberships[degree][pos];
 
-				if (std::find(sampled_nodes.begin(), sampled_nodes.end(), u) == sampled_nodes.end()) {
-					sampled_nodes.push_back(u);
+					if (std::find(sampled_nodes.begin(), sampled_nodes.end(), u) == sampled_nodes.end()) {
+						sampled_nodes.push_back(u);
+					}
 				}
 			}
 
