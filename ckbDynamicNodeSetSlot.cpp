@@ -1316,7 +1316,7 @@ void randomlyPerturb(community* c, int timeslot, int commIndex){
 			std::swap(u, v);
 		}
 
-		if (graph[u]->hasEdge(v) == false) {
+		if (u != v && graph[u]->hasEdge(v) == false) {
 			sNode = u;
 			dNode = v;
 
