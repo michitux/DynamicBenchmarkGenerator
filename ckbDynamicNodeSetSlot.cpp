@@ -412,13 +412,10 @@ void generateBigraph(){
 
 void generateEdgesForCommunity(int commIndex){
 	vector<int> nodesInCommunity;
-	for (int i=0;i<N1;i++){
-		for (int j=0;j<graph[i]->communities.size();j++)
-			if (graph[i]->communities[j] == commIndex){
-				nodesInCommunity.push_back(i);
-				break;
-			}
+	for (nodeInCommunity* nic : communities[commIndex]->nodeList) {
+		nodesInCommunity.push_back(nic->nodeId);
 	}
+
 	int numberOfNodes = nodesInCommunity.size();
 	if (numberOfNodes <= 1) return;
 
