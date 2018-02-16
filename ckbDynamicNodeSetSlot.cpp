@@ -557,6 +557,32 @@ bool sanityCheck3(){
 	return true;
 }
 
+void makeOrphan(int nodeId, int timeslot) {
+	numOrphanNodes += 1;
+	cout << "Orphaned " << nodeId << endl;
+	graph[nodeId]->isOrphaned = 1;
+	graph[nodeId]->orphanedAt = timeslot;
+	//delete all epsilon edges.
+	for (int j = 0; j < graph[nodeId]->adj.size(); j++){
+		if (graph[nodeId]->adj[j]->endTime == -1 && graph[nodeId]->adj[j]->communityId == -2){
+			int dj = graph[nodeId]->adj[j]->destId;
+			edge *reverseEdge = graph[dj]->findReverseEpsAliveEdge(nodeId, -4);
+			if ((reverseEdge) && (reverseEdge->endTime == -1) && (reverseEdge->startTime <= timeslot)){
+				reverseEdge->endTime = timeslot;
+				graph[nodeId]->adj[j]->endTime = timeslot;
+			}
+		}
+		else if (graph[nodeId]->adj[j]->endTime == -1 && graph[nodeId]->adj[j]->communityId == -4){
+			int dj = graph[nodeId]->adj[j]->destId;
+			edge *reverseEdge = graph[dj]->findReverseEpsAliveEdge(nodeId, -2);
+			if ((reverseEdge) && (reverseEdge->endTime == -1) && (reverseEdge->startTime <= timeslot)){
+				reverseEdge->endTime = timeslot;
+				graph[nodeId]->adj[j]->endTime = timeslot;
+			}
+		}
+	}
+}
+
 void generateStaticStructure(){
 	for (int i=0;i<N1;i++) graph.push_back(new node(i));
 	cout << "Generating bigraph... " << endl << flush;
@@ -569,6 +595,11 @@ void generateStaticStructure(){
 		if (i % 10 == 0) cout << "done " << i << " comms " << endl << flush;
 	}
 	generateEpsCommunity();
+	for (int u = 0; u < N1; ++u) {
+		if (graph[u]->communities.empty()) {
+			makeOrphan(u, 0);
+		}
+	}
 	sanityCheck();
 }
 /*******************************************************************/
@@ -596,30 +627,7 @@ void deathCommunity(int commIndex, int timeslot){
         	nodeMemberships[u] -= 1; currMem -= 1;
 		sampler->leaveCommunity(u);
         	if (nodeMemberships[u] == 0){
-            		numOrphanNodes += 1;
-            		cout << "Orphaned " << u << endl;
-	    		graph[u]->isOrphaned = 1;
-	    		graph[u]->orphanedAt = timeslot;
-			//delete all epsilon edges.
-			for (int j = 0; j < graph[u]->adj.size(); j++){
-				if (graph[u]->adj[j]->endTime == -1 && graph[u]->adj[j]->communityId == -2){
-					int dj = graph[u]->adj[j]->destId;
-					edge *reverseEdge = graph[dj]->findReverseEpsAliveEdge(u, -4);
-					if ((reverseEdge) && (reverseEdge->endTime == -1) && (reverseEdge->startTime <= timeslot)){
-						reverseEdge->endTime = timeslot;
-						graph[u]->adj[j]->endTime = timeslot;
-					}
-				}
-				else if (graph[u]->adj[j]->endTime == -1 && graph[u]->adj[j]->communityId == -4){
-					int dj = graph[u]->adj[j]->destId;
-					edge *reverseEdge = graph[dj]->findReverseEpsAliveEdge(u, -2);
-					if ((reverseEdge) && (reverseEdge->endTime == -1) && (reverseEdge->startTime <= timeslot)){
-						reverseEdge->endTime = timeslot;
-						graph[u]->adj[j]->endTime = timeslot;
-					}
-				}
-			}
-
+			makeOrphan(u, timeslot);
 		}
 
 		for (int j=0; j< graph[u]->adj.size();j++){
