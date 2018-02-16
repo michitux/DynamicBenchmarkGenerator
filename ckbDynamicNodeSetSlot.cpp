@@ -313,6 +313,8 @@ vector<int> powerLawDegreeSequenceSum(int xmin, int xmax, double beta, int sum){
 			if (d2 < d1){
 				degreeSequence.push_back(t);
 				tempSum += t;
+			} else {
+				break;
 			}
 		}
 	}
