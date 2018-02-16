@@ -1243,18 +1243,20 @@ void generateEvent(int timeslot){
 				if (r==0) comm[0] = i;
 			}
 		}
-		numCandidates = 0;
-		int commSize = (communities[comm[0]]->nodeList).size();
-		for (int j=0; j<N2;j++){
-			if (comm[0]==j) continue;
-			if (!communities[j]->isAvailable) continue;
-			if (((communities[j]->nodeList).size() + commSize)<=mmax){
-				numCandidates += 1;
-				int r = rand()%numCandidates;
-				if (r==0){
-					comm[1] = j;
-				}
-			}
+		if (numCandidates > 0) {
+		    numCandidates = 0;
+		    int commSize = (communities[comm[0]]->nodeList).size();
+		    for (int j=0; j<N2;j++){
+			    if (comm[0]==j) continue;
+			    if (!communities[j]->isAvailable) continue;
+			    if (((communities[j]->nodeList).size() + commSize)<=mmax){
+				    numCandidates += 1;
+				    int r = rand()%numCandidates;
+				    if (r==0){
+					    comm[1] = j;
+				    }
+			    }
+		    }
 		}
 		if (numCandidates >= 2){
 			mergeCommunities(comm[0],comm[1],timeslot);
