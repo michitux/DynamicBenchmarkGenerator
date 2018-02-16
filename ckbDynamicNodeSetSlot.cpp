@@ -402,9 +402,11 @@ void generateBigraph(){
 		for (int u : communityNodes) {
 			sampler->assignCommunity(u);
 			++nodeMemberships[u];
+			++currMem;
 			graph[u]->communities.push_back(i);
 			(communities[i]->nodeList).push_back(new nodeInCommunity(u,0));
 		}
+		initialMem += communityNodes.size();
 	}
 }
 
@@ -1586,10 +1588,12 @@ int main(int argc, char *argv[]){
 			if (nodeMemberships[i] == 2) n2 += 1;
 			total += nodeMemberships[i];
 		}
+		assert(total == currMem);
 		double x = initialMem/currMem;
 		probB = 0.5*x/(1+x);	//linear
 		//probB = (0.5 + x*x)/(1 + x*x); //quadratic
 		probD = 0.5 - probB;
+		cout << "currMem: " << currMem << " initialMem: " << initialMem << " probB: " << probB << " probD: " << probD << endl;
 		cout << "orphan : " << t << " " << numOrphanNodes << " " << nBirths << " " << nDeaths
 			<< " " << n1 << " " << n2 << " " << total << endl << flush;
 	}
