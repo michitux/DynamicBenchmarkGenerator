@@ -134,25 +134,25 @@ std::vector<int> BucketSampling::birthCommunityNodes(int communitySize) {
 }
 
 void BucketSampling::assignCommunity(int nodeId) {
-	node_data& node = nodes[nodeId];
-
-	if (!node.full_slot_positions.empty()) {
+	if (!nodes[nodeId].full_slot_positions.empty()) {
 		// relocate slot to the end of full_slots
-		int slot_pos = node.full_slot_positions.back();
+		int slot_pos = nodes[nodeId].full_slot_positions.back();
 		assert(full_slots[slot_pos].node == nodeId);
 
 		std::swap(full_slots[slot_pos], full_slots.back());
 
 		// repair the reference to the other slot position
 		slot& other_slot = full_slots[slot_pos];
+		assert(nodes[other_slot.node].full_slot_positions[other_slot.pos_at_node] == full_slots.size() - 1);
 		nodes[other_slot.node].full_slot_positions[other_slot.pos_at_node] = slot_pos;
-		node.full_slot_positions.pop_back();
+		nodes[nodeId].full_slot_positions.pop_back();
 		full_slots.pop_back();
+		verifyInvariants();
 	} else {
 		removeFraction(nodeId, oversample_fraction);
+		verifyInvariants();
 	}
 
-	verifyInvariants();
 }
 
 void BucketSampling::leaveCommunity(int nodeId) {
@@ -214,19 +214,17 @@ int BucketSampling::addNode(int degree, bool oversample) {
 	nodes.emplace_back();
 	node_sampled_in_current_call.push_back(false);
 
-	node_data& node = nodes[u];
-
-	node.degree = degree;
-	node.nodes_by_memberships_pos = nodes_by_memberships[degree].size();
+	nodes[u].degree = degree;
+	nodes[u].nodes_by_memberships_pos = nodes_by_memberships[degree].size();
 	nodes_by_memberships[degree].push_back(u);
 
-	int u_fractional_slot = node.degree % oversample_fraction;
-	int u_additional_full_slots = node.degree / oversample_fraction;
-	int num_full_slots = node.degree;
+	int u_fractional_slot = degree % oversample_fraction;
+	int u_additional_full_slots = degree / oversample_fraction;
+	int num_full_slots = degree;
 
 	if (oversample) {
-		auto& nodes_with_fractional_slots = nodes_with_fractional_slots_for_degree[node.degree];
-		if (nodes_by_memberships[node.degree].size() % (oversample_fraction + 1) == oversample_fraction) {
+		auto& nodes_with_fractional_slots = nodes_with_fractional_slots_for_degree[degree];
+		if (nodes_by_memberships[degree].size() % (oversample_fraction + 1) == oversample_fraction) {
 			// remove oversampled slots
 			for (int& v : nodes_with_fractional_slots) {
 				assert(v != -1);
@@ -260,19 +258,18 @@ int BucketSampling::addNode(int degree, bool oversample) {
 			assert(found);
 		}
 	} else {
-		assert(nodes_by_memberships[node.degree].size() % (oversample_fraction + 1) == 0);
+		assert(nodes_by_memberships[degree].size() % (oversample_fraction + 1) == 0);
 		u_fractional_slot = 0;
 	}
 
-	node.full_slot_positions.reserve(num_full_slots);
+	nodes[u].full_slot_positions.reserve(num_full_slots);
 
 	for (int i = 0; i < num_full_slots; ++i) {
 		leaveCommunity(u);
 	}
 
-
-	assert(node.full_slot_positions.size() == num_full_slots);
-	assert(node.current_fractional_slot == u_fractional_slot);
+	assert(nodes[u].full_slot_positions.size() == num_full_slots);
+	assert(nodes[u].current_fractional_slot == u_fractional_slot);
 
 	return u;
 }
@@ -289,23 +286,21 @@ int BucketSampling::addNode(int degree) {
 }
 
 void BucketSampling::removeNode(int nodeId, bool withFraction) {
-	node_data& node = nodes[nodeId];
-
 	// make sure there are no more slots for this node
-	while (node.current_fractional_slot >= 0) {
+	while (nodes[nodeId].current_fractional_slot >= 0) {
 		assignCommunity(nodeId);
 	}
 
-	const int degree = node.degree;
-	node.degree = 0;
+	const int degree = nodes[nodeId].degree;
+	nodes[nodeId].degree = 0;
 
 	{ // delete node from nodes_by_memberships,
 		const int partner = nodes_by_memberships[degree].back();
 		std::swap(
-			  nodes_by_memberships[degree][node.nodes_by_memberships_pos],
+			  nodes_by_memberships[degree][nodes[nodeId].nodes_by_memberships_pos],
 			  nodes_by_memberships[degree].back()
 			  );
-		nodes[partner].nodes_by_memberships_pos = node.nodes_by_memberships_pos;
+		nodes[partner].nodes_by_memberships_pos = nodes[nodeId].nodes_by_memberships_pos;
 		nodes_by_memberships[degree].pop_back();
 	}
 
