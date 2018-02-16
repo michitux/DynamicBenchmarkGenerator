@@ -1294,22 +1294,42 @@ void randomlyPerturb(community* c, int timeslot, int commIndex){
 	}
 	else return;
 
-	//sample a node pair to be inserted as edge
-	int sNode = eToD->sourceId;
+	// if this community is a clique, give up.
+	if (numEdges == (numberOfNodes * (numberOfNodes - 1)) / 2) {
+		return;
+	}
+
+	int sNode = -1;
 	int dNode = -1;
-	int numCandidateNodes = 0;
-	for (int i = 1; i < numberOfNodes; i++){
-		int d = c->nodeList[i]->nodeId;
-		if (d == sNode) continue;
-		if (graph[sNode]->hasEdge(d) == false){
-			numCandidateNodes += 1;
-			int r = rand()%(numCandidateNodes);
-			if (r==0) dNode = d;
+	// Sample a node pair to be inserted as edge
+	// Try to sample ten times, then give up
+	for (int i = 0; i < 10; ++i) {
+		int x = rand()%numberOfNodes;
+		int y = rand()%numberOfNodes;
+
+		int u = c->nodeList[x]->nodeId;
+		int v = c->nodeList[y]->nodeId;
+
+		// make sure always u has the smaller degree to make the
+		// adjacency check faster.
+		if (graph[u]->adj.size() > graph[v]->adj.size()) {
+			std::swap(u, v);
+		}
+
+		if (graph[u]->hasEdge(v) == false) {
+			sNode = u;
+			dNode = v;
+
+			break;
 		}
 	}
-	if (dNode == -1) return;
 
-	//cout << "Inserting Edge " << commIndex << ":" << sNode << ", " << dNode << ", " << timeslot << endl << flush;
+	if (dNode == -1) {
+		cout << "did not find a pair" << endl;
+		return;
+	}
+
+	cout << "Inserting Edge " << commIndex << ":" << sNode << ", " << dNode << ", " << timeslot << endl << flush;
 	edge *fwd = new edge(sNode,dNode,commIndex);
 	fwd->startTime = timeslot;
 	bool flagR = graph[sNode]->addEdge(fwd);
