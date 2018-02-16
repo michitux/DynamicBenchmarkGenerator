@@ -361,30 +361,51 @@ bool compareUpdate(update i, update j){
 void generateBigraph(){
 	nodeMemberships = powerLawDegreeSequence(xmin,xmax,beta1,N1);
 
-
+	cout << "generateBigraph: CP0" << endl << flush;
 	int sumMemberships = 0;
 	for (int i = 0; i < N1; i++){
 		sumMemberships += nodeMemberships[i];
+		cout << "nM = " << nodeMemberships[i] << endl << flush;
 		sampler->addNode(nodeMemberships[i]);
 	}
+
+	int newN1 = sampler->getNumberOfNodes();
+	for (int i = N1; i < newN1; i++) graph.push_back(new node(i));
+
+	cout << "sampler has added " << sampler->getNumberOfNodes() << endl << flush;
 
 	/*Generate power law degree sequences*/
 	communitySizes = powerLawDegreeSequenceSum(mmin,mmax,beta2,sumMemberships);
 	N2 = communitySizes.size();
+	int actualSumOfMemberships = 0;
 
-	for (int i=0;i<N2;i++)
+	for (int i=0;i<N2;i++){
+		actualSumOfMemberships += communitySizes[i];
 		communities.push_back(new community());
+		if (actualSumOfMemberships > sampler->getSumOfDesiredMemberships()){
+			break;
+		}
+	}
+	N2 = communities.size();
+
 	cout << "GenerateBigraph : CP1" << endl << flush;
 	for (int i=0;i<N2;i++){
 		communities[i]->birthTime = 0;
 		int wanted_size = communitySizes[i];
 		std::vector<int> communityNodes = sampler->birthCommunityNodes(wanted_size);
+		cout << "Generating community : " << i << ", " << communityNodes.size() << ", " << wanted_size << endl << flush;
 		for (int u : communityNodes) {
+		    cout << "GenerateBigraph: CP A" << endl << flush;
 			sampler->assignCommunity(u);
+			cout << "GenerateBigraph: CP B" << endl << flush;
 			++nodeMemberships[u];
+			cout << "GenerateBigraph: CP C " << u << endl << flush;
 			graph[u]->communities.push_back(i);
+			cout << "GenerateBigraph: CP D" << endl << flush;
 			(communities[i]->nodeList).push_back(new nodeInCommunity(u,0));
+			cout << "GenerateBigraph: CP E" << endl << flush;
 		}
+		cout << "Generated community : " << i << endl << flush;
 	}
 }
 
