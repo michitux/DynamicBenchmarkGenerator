@@ -1515,7 +1515,7 @@ void printInitialGraph(){
 			community c = *communities[communityId];
 			int pos = c.indexOfNode(i);
 			if (pos!=-1){
-				if ((c.nodeList[pos]->joinTime >= 0) && (c.nodeList[pos]->leaveTime >= -1))
+				if ((c.nodeList[pos]->joinTime == 0) && (c.nodeList[pos]->leaveTime >= -1))
 					myfileC << i << "\t" << communityId << endl;
 			}
 		}
