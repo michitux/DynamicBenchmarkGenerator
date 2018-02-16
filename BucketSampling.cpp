@@ -1,7 +1,7 @@
 #include "BucketSampling.h"
 
 
-void BucketSampling::verifyInvariants(bool verify_oversampling) {
+void BucketSampling::verifyInvariants(bool verify_oversampling) const {
 #ifndef NDEBUG
 	int num_full_slots = 0;
 	std::array<int, oversample_fraction> num_fractional_slots;
@@ -10,7 +10,7 @@ void BucketSampling::verifyInvariants(bool verify_oversampling) {
 	int num_existing_nodes = 0;
 
 	for (int u = 0; u < nodes.size(); ++u) {
-		node_data& node = nodes[u];
+		const node_data& node = nodes[u];
 
 		if (node.degree == 0) {
 			assert(node.full_slot_positions.empty());

@@ -45,7 +45,7 @@ private:
 
 	int sumOfDesiredMemberships;
 
-	void verifyInvariants(bool verify_oversampling = false);
+	void verifyInvariants(bool verify_oversampling = false) const;
 public:
 	/**
 	 * Initialize the sampling data structure.
