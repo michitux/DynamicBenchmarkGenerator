@@ -364,7 +364,7 @@ void generateBigraph(){
 	int sumMemberships = 0;
 	for (int i = 0; i < N1; i++){
 		sumMemberships += nodeMemberships[i];
-		cout << "nM = " << nodeMemberships[i] << endl << flush;
+		//cout << "nM = " << nodeMemberships[i] << endl << flush;
 		sampler->addNode(nodeMemberships[i]);
 	}
 
@@ -398,17 +398,11 @@ void generateBigraph(){
 		std::vector<int> communityNodes = sampler->birthCommunityNodes(wanted_size);
 		cout << "Generating community : " << i << ", " << communityNodes.size() << ", " << wanted_size << endl << flush;
 		for (int u : communityNodes) {
-		    cout << "GenerateBigraph: CP A" << endl << flush;
 			sampler->assignCommunity(u);
-			cout << "GenerateBigraph: CP B" << endl << flush;
 			++nodeMemberships[u];
-			cout << "GenerateBigraph: CP C " << u << endl << flush;
 			graph[u]->communities.push_back(i);
-			cout << "GenerateBigraph: CP D" << endl << flush;
 			(communities[i]->nodeList).push_back(new nodeInCommunity(u,0));
-			cout << "GenerateBigraph: CP E" << endl << flush;
 		}
-		cout << "Generated community : " << i << endl << flush;
 	}
 }
 
