@@ -592,6 +592,7 @@ void deathCommunity(int commIndex, int timeslot){
 		int u = c->nodeList[i]->nodeId;
 		if (graph[u]->endTime > -1) continue;   //this vertex is already dead, and so has left the community
         	nodeMemberships[u] -= 1; currMem -= 1;
+		sampler->leaveCommunity(u);
         	if (nodeMemberships[u] == 0){
             		numOrphanNodes += 1;
             		cout << "Orphaned " << u << endl;
@@ -956,6 +957,7 @@ void mergeCommunities(int c1Index, int c2Index, int timeslot){
 
 		if (c2->indexOfNode(u) != -1){
 			nodeMemberships[u] -= 1;
+			sampler->leaveCommunity(u);
 			currMem -= 1;
 			continue;
 		}
