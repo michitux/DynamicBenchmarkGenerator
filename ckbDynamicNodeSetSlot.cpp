@@ -1354,14 +1354,14 @@ void generateTimeslot(int timeslot){
 	int numAC = 0;
 	for (int i = 0; i < N2; i++){
 		if (communities[i]->isAvailable) numAC++;
-		cout << i << " " << flush;
+		//cout << i << " " << flush;
 	}
 
 	cout << "Just a check " << communities[N2-1]->isAvailable << endl << flush;
 	int numAvailableCommunities = 0;
 	for (int i = 0; i < N2; i++){
 		if (communities[i]->isAvailable) numAvailableCommunities++;
-		cout << i << " " << flush;
+		//cout << i << " " << flush;
 	}
 	cout << "Number of available communities at " << timeslot << " = " << numAvailableCommunities << endl << flush;
 }
