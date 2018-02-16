@@ -260,7 +260,6 @@ vector<community*> communities;
 vector<int> nodeMemberships;
 BucketSampling *sampler = nullptr;
 
-vector<double> nodeSlots;
 vector<int> communitySizes;
 
 int numOrphanNodes;
@@ -371,6 +370,10 @@ void generateBigraph(){
 
 	int newN1 = sampler->getNumberOfNodes();
 	for (int i = N1; i < newN1; i++) graph.push_back(new node(i));
+	N1 = newN1;
+
+	nodeMemberships.clear();
+	nodeMemberships.resize(N1, 0);
 
 	cout << "sampler has added " << sampler->getNumberOfNodes() << endl << flush;
 
@@ -649,31 +652,8 @@ void birthCommunity(int timeslot){
 	z.run();
 	int commSize = z.getDegree();
     	if (commSize < mmin) return;
-    	int currSize = 0;
 
-	int *res = new int[commSize];
-	//draw community members
-	double *nodeProbs = new double[N1];
-	int numCandidateNodes = 0;
-	for (int i=0;i<N1;i++){
-	        /*if (currSize == commSize) break;
-	        if (nodeMemberships[i] == 0){
-        	    cout << "Including " << i << " at " << timeslot << endl;
-        	    includedNode = i;
-        	    res[currSize++] = i;
-        	    nodeProbs[i] = 0;
-        	}
-        	else */nodeProbs[i] = nodeSlots[i] - nodeMemberships[i];
-
-		if (nodeProbs[i] <= 0) nodeProbs[i] = 0;
-		else numCandidateNodes += 1;
-	}
-
-	//normalize nodeProbs
-	if (numCandidateNodes < commSize) return;   //could not birth community - not enough nodes available
-	double sumNodeProbs = 0;
-	for (int i=0;i<N1;i++) sumNodeProbs += nodeProbs[i];
-
+	std::vector<int> commNodes = sampler->birthCommunityNodes(commSize);
 	int commIndex = communities.size();
 	//cout << "Birthing community " << commIndex << " at " << timeslot << endl;
 	//cout << "N2 = " << N2 << endl;
@@ -683,31 +663,13 @@ void birthCommunity(int timeslot){
 	c->birthTime = timeslot;
 	c->expansionTime = timeslot + rand()%10 + 5; //contraction time between 5 and 14 s
 
-
-
-	while (currSize < commSize){
-        double r = ((double) rand())/((double) RAND_MAX) * sumNodeProbs;
-        double sumTemp = 0;
-        for (int i = 0; i < N1; i++){
-            sumTemp += nodeProbs[i];
-            if (sumTemp >= r){
-                res[currSize] = i;
-                sumNodeProbs -= nodeProbs[i];
-
-                nodeProbs[i] = 0;
-                break;
-            }
-        }
-        currSize += 1;
-	}
-
-
 	for (int i=0;i<commSize;i++){
-		c->nodeList.push_back(new nodeInCommunity(res[i]));
-		graph[res[i]]->communities.push_back(commIndex);
-		nodeMemberships[res[i]] += 1; currMem += 1;
-		if (nodeMemberships[res[i]] == 1){
-			int u = res[i];
+		sampler->assignCommunity(commNodes[i]);
+		c->nodeList.push_back(new nodeInCommunity(commNodes[i]));
+		graph[commNodes[i]]->communities.push_back(commIndex);
+		nodeMemberships[commNodes[i]] += 1; currMem += 1;
+		if (nodeMemberships[commNodes[i]] == 1){
+			int u = commNodes[i];
 			numOrphanNodes -= 1;
 			graph[u]->isOrphaned = 0;
 			//recover all epsilon edges
@@ -736,20 +698,14 @@ void birthCommunity(int timeslot){
 
 
 	//generate internal edges
-	vector<int> nodesInCommunity;
-	for (int i=0;i<c->nodeList.size();i++)
-		nodesInCommunity.push_back(c->nodeList[i]->nodeId);
-	int numberOfNodes = nodesInCommunity.size();
-
-
 	//double probNew = 2*prob/(numberOfNodes-1);
-	double probNew = alpha/pow(numberOfNodes,gamma_1);
-	if ((probNew > 1.0) || (numberOfNodes == 2)) probNew = 1;
-	int coreSize = (int)(0.1*numberOfNodes);
+	double probNew = alpha/pow(commSize,gamma_1);
+	if ((probNew > 1.0) || (commSize == 2)) probNew = 1;
+	int coreSize = (int)(0.1*commSize);
 	if (coreSize < mmin) coreSize = mmin;
-	for (int i=0; i<numberOfNodes; i++){
+	for (int i=0; i<commSize; i++){
 		if (i < coreSize) c->nodeList[i]->joinTime = c->birthTime;
-		else c->nodeList[i]->joinTime = (int) (floor(c->birthTime + (((double) (i - coreSize))/(numberOfNodes - coreSize))*(c->expansionTime - c->birthTime)));
+		else c->nodeList[i]->joinTime = (int) (floor(c->birthTime + (((double) (i - coreSize))/(commSize - coreSize))*(c->expansionTime - c->birthTime)));
 	}
 
 	/*Copied from Networkit implementation of Batagelj Brandes*/
@@ -760,19 +716,19 @@ void birthCommunity(int timeslot){
 	c->nextAvailableTimeSlot = c->expansionTime;
 	cout << "Birth community: " << c->expansionTime << endl;
 
-	while (curr < numberOfNodes) {
+	while (curr < commSize) {
 		// compute new step length
 		next += get_next_edge_distance(log_cp);
 		// check if at end of row
-		while ((next >= curr) && (curr < numberOfNodes)) {
+		while ((next >= curr) && (curr < commSize)) {
 			// adapt to next row
 			next = next - curr;
 			curr++;
 		}
 		// insert edge
-		if (curr < numberOfNodes) {
-			int a = nodesInCommunity[curr];
-			int b = nodesInCommunity[next];
+		if (curr < commSize) {
+			int a = commNodes[curr];
+			int b = commNodes[next];
 			edge *fwd = new edge(a,b,commIndex);
 			bool flag = graph[a]->addEdge(fwd);
 			if (!flag) continue;
@@ -1126,37 +1082,41 @@ void mergeCommunities(int c1Index, int c2Index, int timeslot){
 
 /**************************VERTEX EVENTS****************************/
 void addNode(int timeslot){
-	int u = N1;
-	N1 += 1;
 	PowerlawDegreeSequence z(xmin,xmax,beta1); //get community membership
 	z.run();
 	int nodeMembership = z.getDegree();
+	sampler->addNode(nodeMembership);
+	N1 = sampler->getNumberOfNodes();
 	//nodeMemberships.push_back((int)(floor(1.2*nodeMembership)));
-	nodeSlots.push_back(1.2*nodeMembership);
-	graph.push_back(new node(u,timeslot));
-	for (int i=0;i<eps;i++){
-		int v = rand()%(N1-1);
-		while (graph[v]->endTime != -1)
-			v = rand()%(N1-1);
+	while (graph.size() < N1) {
+	    const int u = graph.size();
+	    graph.push_back(new node(u,timeslot));
+	    nodeMemberships.push_back(0);
+	    for (int i=0;i<eps;i++){
+		    int v = rand()%(N1-1);
+		    while (graph[v]->endTime != -1)
+			    v = rand()%(N1-1);
 
-		edge *fwd = new edge(u,v,-2);
-		fwd->startTime = timeslot;
-		bool flag = graph[u]->addEdge(fwd);
-		if (flag){
-			edge *bwd = new edge(v,u,-1);    //communityId = -1 for a reverse edge
-			bwd->startTime = timeslot;
-			flag = graph[v]->addEdge(bwd);
-			if (!flag){
-				cout << "7.ERROR HERE!" << endl << flush;
-				exit(0);
-			}
-		}
+		    edge *fwd = new edge(u,v,-2);
+		    fwd->startTime = timeslot;
+		    bool flag = graph[u]->addEdge(fwd);
+		    if (flag){
+			    edge *bwd = new edge(v,u,-1);    //communityId = -1 for a reverse edge
+			    bwd->startTime = timeslot;
+			    flag = graph[v]->addEdge(bwd);
+			    if (!flag){
+				    cout << "7.ERROR HERE!" << endl << flush;
+				    exit(0);
+			    }
+		    }
+	    }
 	}
 }
 
 void deleteNode(int nodeIndex, int timeslot){
+	sampler->removeNode(nodeIndex);
+
 	nodeMemberships[nodeIndex] = 0; //no future births will involve this node
-	nodeSlots[nodeIndex] = 0;
 	for (int i=0;i<graph[nodeIndex]->communities.size();i++){
 		int communityId = graph[nodeIndex]->communities[i];
 		community c = *communities[communityId];
