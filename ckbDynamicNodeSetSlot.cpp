@@ -398,6 +398,7 @@ void generateBigraph(){
 		communities[i]->birthTime = 0;
 		int wanted_size = communitySizes[i];
 		std::vector<int> communityNodes = sampler->birthCommunityNodes(wanted_size);
+		std::random_shuffle(communityNodes.begin(), communityNodes.end());
 		cout << "Generating community : " << i << ", " << communityNodes.size() << ", " << wanted_size << endl << flush;
 		for (int u : communityNodes) {
 			sampler->assignCommunity(u);
@@ -658,6 +659,7 @@ void birthCommunity(int timeslot){
     	if (commSize < mmin) return;
 
 	std::vector<int> commNodes = sampler->birthCommunityNodes(commSize);
+	std::random_shuffle(commNodes.begin(), commNodes.end());
 	int commIndex = communities.size();
 	//cout << "Birthing community " << commIndex << " at " << timeslot << endl;
 	//cout << "N2 = " << N2 << endl;
