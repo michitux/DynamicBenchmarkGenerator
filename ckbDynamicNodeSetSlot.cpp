@@ -17,7 +17,7 @@
 using namespace std;
 
 /*************************PARAMETERS******************************/
-int T = 50;        //Number of time slots
+int T = 1000;        //Number of time slots
 double lambda = 0.2;//how sharply communities will rise and fall
 int N1 = 50000;		//Number of nodes
 int N2;             //Number of communities, set in the program
@@ -1470,7 +1470,7 @@ void printGraphStream(){
 				exit(1);
 			}
 			if (graph[i]->adj[j]->startTime == graph[i]->adj[j]->endTime) continue;
-			if (graph[i]->adj[j]->startTime > 0)
+			if (graph[i]->adj[j]->startTime >= 0)
 				stream.push_back(update(2, i, graph[i]->adj[j]->destId, graph[i]->adj[j]->startTime));
 			if (graph[i]->adj[j]->endTime > 0)
 				stream.push_back(update(0, i, graph[i]->adj[j]->destId, graph[i]->adj[j]->endTime));
