@@ -1331,11 +1331,11 @@ void randomlyPerturb(community* c, int timeslot, int commIndex){
 	}
 
 	if (dNode == -1) {
-		cout << "did not find a pair" << endl;
+		cout << "Did not find a pair to insert for perturbation." << endl;
 		return;
 	}
 
-	cout << "Inserting Edge " << commIndex << ":" << sNode << ", " << dNode << ", " << timeslot << endl << flush;
+	//cout << "Inserting Edge " << commIndex << ":" << sNode << ", " << dNode << ", " << timeslot << endl << flush;
 	edge *fwd = new edge(sNode,dNode,commIndex);
 	fwd->startTime = timeslot;
 	bool flagR = graph[sNode]->addEdge(fwd);
