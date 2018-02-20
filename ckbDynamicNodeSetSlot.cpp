@@ -1537,11 +1537,12 @@ void printGraphStream(){
 }
 
 void printInitialGraph(){
-	ofstream myfile, myfileC;
+	ofstream myfile, myfileC, myfileCAll;
 //	myfile.open("ckbDynamicO");
 //	myfileC.open("ckbDynamicCommunitiesO");
 	myfile.open("ckbDynamicInitialGraphEdgeList");
 	myfileC.open("ckbDynamicInitialCoverEdgeList");
+	myfileCAll.open("ckbDynamicAllCoverEdgeList");
 	for (int i=0;i<N1;i++){
 		for (int j=0; j < (graph[i]->adj).size(); j++){
 			if (((graph[i]->adj[j])->communityId == -1)||((graph[i]->adj[j])->communityId == -4)) continue;
@@ -1557,11 +1558,13 @@ void printInitialGraph(){
 			if (pos!=-1){
 				if ((c.nodeList[pos]->joinTime == 0) && (c.nodeList[pos]->leaveTime >= -1))
 					myfileC << i << "\t" << communityId << endl;
+				myfileCAll << i << "\t" << communityId << endl;
 			}
 		}
 	}
 	myfile.close();
 	myfileC.close();
+	myfileCAll.close();
 }
 
 void printAFOCSGraphAndStream(){
