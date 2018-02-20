@@ -16,6 +16,9 @@
 
 using namespace std;
 
+std::vector<std::vector<int>> debug_comm;
+bool debug_communities = true;
+
 /*************************PARAMETERS******************************/
 int T = 50;        //Number of time slots
 double lambda = 0.2;//how sharply communities will rise and fall
@@ -278,6 +281,35 @@ int nAdd = 0;
 int nDelete = 0;
 /*******************************************************************/
 
+/**
+ * Debug code to get find intersections with existing communities.
+ *
+ * This only finds intersections with communities added here.
+ */
+void addCommunity(std::vector<int> com) {
+	if (!debug_communities) return;
+
+	std::sort(com.begin(), com.end());
+
+	double max_percent_identical = 0;
+
+	for (const std::vector<int>& c : debug_comm) {
+		std::vector<int> intersection;
+		std::set_intersection(com.begin(), com.end(), c.begin(), c.end(), std::back_inserter(intersection));
+
+		int ints = intersection.size();
+		double percent_identical = static_cast<double>(ints)/com.size();
+
+		if (percent_identical > max_percent_identical) {
+			max_percent_identical = percent_identical;
+		}
+	}
+
+	std::cout << "Community " << debug_comm.size() << " is " << max_percent_identical*100 << "% identical with an existing community" << std::endl;
+
+	debug_comm.push_back(std::move(com));
+}
+
 /************************UTILITY FUNCTIONS**************************/
 double expectedPowerLaw(int xmin, int xmax, double beta){
 	PowerlawDegreeSequence z(xmin,xmax,beta);
@@ -409,6 +441,7 @@ void generateBigraph(){
 			graph[u]->communities.push_back(i);
 			(communities[i]->nodeList).push_back(new nodeInCommunity(u,0));
 		}
+		addCommunity(communityNodes);
 		initialMem += communityNodes.size();
 	}
 
@@ -705,6 +738,7 @@ void birthCommunity(int timeslot){
 			graph[u]->orphanedAt = -1;
 		}
 	}
+	addCommunity(commNodes);
 
 
 	//generate internal edges
