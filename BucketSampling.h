@@ -175,4 +175,18 @@ public:
 	int getDesiredMemberships(int nodeId) const {
 		return nodes[nodeId].degree;
 	}
+
+	void printSlots() const {
+		std::vector<int> slotsPerDegree(pl_generator.getMaximumDegree() + 1);
+
+		for (const node_data& node : nodes) {
+			slotsPerDegree[node.degree] += node.full_slot_positions.size();
+		}
+
+		for (int d = 0; d < pl_generator.getMaximumDegree() + 1; ++d) {
+			if (slotsPerDegree[d] > 0) {
+				std::cout << "degree " << d << " has " << slotsPerDegree[d] << " slots" << std::endl;
+			}
+		}
+	}
 };

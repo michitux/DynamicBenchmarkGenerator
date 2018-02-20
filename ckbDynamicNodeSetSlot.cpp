@@ -374,6 +374,8 @@ void generateBigraph(){
 	for (int i = N1; i < newN1; i++) graph.push_back(new node(i));
 	N1 = newN1;
 
+	sampler->printSlots();
+
 	nodeMemberships.clear();
 	nodeMemberships.resize(N1, 0);
 
@@ -409,6 +411,8 @@ void generateBigraph(){
 		}
 		initialMem += communityNodes.size();
 	}
+
+	sampler->printSlots();
 }
 
 void generateEdgesForCommunity(int commIndex){
