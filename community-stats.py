@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser(description="Analyze ground truth and found com
 parser.add_argument("graph", help="The input graph file as tab-separated edgelist with zero-based node ids")
 parser.add_argument("communities", help="The ground truth community structure")
 parser.add_argument("--moses", help="Path to moses binary, if provided the graph will be clustered using the provided binary")
-parser.add_argument("--found-communities", dest="found", help="Path to the found community structure, this file will be written if moses is given.", required=True)
+parser.add_argument("--found-communities", dest="found", help="Path to the found community structure, this file will be written if moses is given.")
 parser.add_argument("--plot-path", dest="plot", help="The path of the plot to generate", required=True)
 parser.add_argument("--separator", help="The separate of the nodes in the edge list", default="tab", choices=["tab", "space"])
 parser.add_argument("--truth-format", dest="format", help="The format of the ground truth cover", default="node-community", choices=["node-community", "community-nodes"])
@@ -32,18 +32,20 @@ if not args.moses is None:
     import subprocess
     subprocess.call([args.moses, args.graph, args.found])
 
-mosesC = graphio.CoverReader(0).read(args.found, G)
-
-print("Found {found} communities of {truth} ground truth communities.".format(truth=C.numberOfSubsets(), found=mosesC.numberOfSubsets()))
-
-foundCommunities = { i : mosesC.getMembers(i) for i in  mosesC.getSubsetIds() }
 trueCommunities = { i : C.getMembers(i) for i in C.getSubsetIds() }
-comp = scd.SCDGroundTruthComparison(G, mosesC, trueCommunities, True).run()
+
+if not args.moses is None:
+    mosesC = graphio.CoverReader(0).read(args.found, G)
+
+    print("Found {found} communities of {truth} ground truth communities.".format(truth=C.numberOfSubsets(), found=mosesC.numberOfSubsets()))
+
+    foundCommunities = { i : mosesC.getMembers(i) for i in  mosesC.getSubsetIds() }
+    comp = scd.SCDGroundTruthComparison(G, mosesC, trueCommunities, True).run()
+    foundF1ofTrue = comp.getIndividualF1()
+    trueF1s = [foundF1ofTrue[i] for i in trueComms]
 
 trueComms = list(trueCommunities.keys())
 trueSizes = [len(trueCommunities[i]) for i in trueComms]
-foundF1ofTrue = comp.getIndividualF1()
-trueF1s = [foundF1ofTrue[i] for i in trueComms]
 avgNumComms = [ sum([len(C.subsetsOf(u)) for u in trueCommunities[ci]]) / len(trueCommunities[ci]) for ci in trueComms ]
 avgDeg = [ sum([G.degree(u) for u in trueCommunities[ci]]) / len(trueCommunities[ci]) for ci in trueComms ]
 
@@ -82,7 +84,10 @@ for i, com in enumerate(trueComms):
     matches[i] = bestMatch
     jaccards[i] = bestJaccard
 
-df = pd.DataFrame(np.array([trueComms, trueSizes, trueF1s, recalls, precisions, avgNumComms, avgDeg]).T, columns=["Id", "Size", "Found F1", "Contained", "Fraction of parent", "Avg. #memberships", "Avg. node degree"])
+if args.found is None:
+    df = pd.DataFrame(np.array([trueComms, trueSizes, recalls, precisions, jaccards, avgNumComms, avgDeg]).T, columns=["Id", "Size", "Contained", "Fraction of parent", "Jaccard", "Avg. #memberships", "Avg. node degree"])
+else:
+    df = pd.DataFrame(np.array([trueComms, trueSizes, trueF1s, recalls, precisions, jaccards, avgNumComms, avgDeg]).T, columns=["Id", "Size", "Found F1", "Contained", "Fraction of parent", "Jaccard", "Avg. #memberships", "Avg. node degree"])
 
 g = seaborn.PairGrid(df, diag_sharey=False)
 g.map_lower(seaborn.kdeplot, cmap="Blues_d")
@@ -103,7 +108,8 @@ print("{} communities are duplicates".format(len(duplicate_communities)))
 print("List of these communities:")
 print(perfect_recalls)
 
-badCommunities = [i for i, f in enumerate(trueF1s) if f < 0.9]
-badSubsetCommunities = [i for i in badCommunities if recalls[i] == 1]
+if not args.found is None:
+    badCommunities = [i for i, f in enumerate(trueF1s) if f < 0.9]
+    badSubsetCommunities = [i for i in badCommunities if recalls[i] == 1]
 
-print("{} communities have a F1 score of less than 0.9. {} of these communities are subsets of each other. These are {}%.".format(len(badCommunities), len(badSubsetCommunities), 100*len(badSubsetCommunities)/len(badCommunities)))
+    print("{} communities have a F1 score of less than 0.9. {} of these communities are subsets of each other. These are {}%.".format(len(badCommunities), len(badSubsetCommunities), 100*len(badSubsetCommunities)/len(badCommunities)))
