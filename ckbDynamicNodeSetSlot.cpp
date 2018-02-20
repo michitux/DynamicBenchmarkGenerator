@@ -1598,19 +1598,25 @@ void printAFOCSGraphAndStream(){
 		}
 		myfile.close();
 	}
-	myfile.open("AFOCS/tempGraphComm.txt");
-	for (int i = 0; i < N2; i++){
-		community c = *communities[i];
-		bool flag = false;
-		for (int j = 0; j < c.nodeList.size(); j++){
-			if ((c.nodeList[j]->joinTime <= T) && (c.nodeList[j]->leaveTime == -1)){
-				flag = true;
-				myfile << (i + 1) << " ";
+
+	for (int t = 0; t <= T; ++t) {
+		std::ostringstream strs;
+		strs << "AFOCS/tempGraphComm_" << (t+1) << ".txt";
+		std::string outfilename = strs.str();
+		myfile.open(outfilename);
+		for (int i = 0; i < N2; i++){
+			community c = *communities[i];
+			bool flag = false;
+			for (int j = 0; j < c.nodeList.size(); j++){
+				if ((c.nodeList[j]->joinTime <= t) && (c.nodeList[j]->leaveTime == -1 || c.nodeList[j]->leaveTime > t)){
+					flag = true;
+					myfile << (c.nodeList[j]->nodeId + 1) << " ";
+				}
 			}
 			if (flag) myfile << endl;
 		}
+		myfile.close();
 	}
-	myfile.close();
 }
 
 int main(int argc, char *argv[]){
