@@ -50,28 +50,37 @@ avgDeg = [ sum([G.degree(u) for u in trueCommunities[ci]]) / len(trueCommunities
 recalls = [0 for i in trueComms]
 matches = [-1 for i in trueComms]
 precisions = [0 for i in trueComms]
+jaccards = [0 for i in trueComms]
 
 for i, com in enumerate(trueComms):
     bestMatch = -1
     bestRecall = 0
     bestPrecision = 0
+    bestJaccard = 0
     comSet = set(trueCommunities[com])
     for j, biggerCom in enumerate(trueComms):
         if i == j:
             continue
 
         biggerComSet = set(trueCommunities[biggerCom])
-        recall = len(comSet.intersection(biggerComSet)) / len(comSet)
-        precision = len(comSet.intersection(biggerComSet)) / len(biggerComSet)
+
+        intersectionSize = len(comSet.intersection(biggerComSet))
+        recall = intersectionSize / len(comSet)
+        precision = intersectionSize / len(biggerComSet)
         if recall > bestRecall or (recall == bestRecall and precision > bestPrecision):
             bestMatch = j
             bestRecall = recall
             bestPrecision = precision
-            
+
+        jaccard = intersectionSize / (len(comSet) + len(biggerComSet) - intersectionSize)
+
+        if jaccard > bestJaccard:
+            bestJaccard = jaccard
 
     recalls[i] = bestRecall
     precisions[i] = bestPrecision
     matches[i] = bestMatch
+    jaccards[i] = bestJaccard
 
 df = pd.DataFrame(np.array([trueComms, trueSizes, trueF1s, recalls, precisions, avgNumComms, avgDeg]).T, columns=["Id", "Size", "Found F1", "Contained", "Fraction of parent", "Avg. #memberships", "Avg. node degree"])
 
@@ -87,8 +96,8 @@ plt.savefig(args.plot)
 #foundPrecisionofTrue = comp.getIndividualPrecision()
 #truePrecisions = [foundPrecisionofTrue[i] for i in trueComms]
 
+duplicate_communities = [i for i, j in enumerate(jaccards) if j == 1]
 perfect_recalls = [(i, r, p, m) for i, (r, p, m) in enumerate(zip(recalls, precisions, matches)) if r == 1.0]
-duplicate_communities = [i for i, p in enumerate(precisions) if p == 1]
 print("{} communities are perfect subsets of other communities, these are {}% of all communities".format(len(perfect_recalls), 100*len(perfect_recalls)/len(trueCommunities)))
 print("{} communities are duplicates".format(len(duplicate_communities)))
 print("List of these communities:")
