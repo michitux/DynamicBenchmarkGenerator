@@ -685,6 +685,7 @@ void deathCommunity(int commIndex, int timeslot){
 			}
 		}
 	}
+	cout << "SD: 2 " << c->nodeList.size() << endl;
 }
 
 void birthCommunity(int timeslot){
@@ -794,6 +795,7 @@ void birthCommunity(int timeslot){
 	}
 	//mark busy
 	c->isAvailable = false;
+	cout << "SD: 1 " << commSize << endl;
 }
 
 void generateEdgesForSplitCommunity(int commIndex, int timeslot){
@@ -880,6 +882,9 @@ void splitCommunity(int commIndex, int timeslot){
 	c2->isAvailable = false;
 	cout << "Splitting community " << commIndex << ", of size = " << c->nodeList.size() << ", into " << c1Index << " and " << c2Index << " at " << timeslot << ", originFlag = " << c->originFlag << endl << flush;
 
+	cout << "SD: 5 " << L << endl;
+	cout << "SD: 5 " << R << endl;
+	cout << "SD: 6 " << c->nodeList.size() << endl;
 	int *leaveTimes = new int[c->nodeList.size()];
 	int numNodesInvolved = 0;
 	for (int i=0;i < (c->nodeList.size());i++){
@@ -1121,6 +1126,9 @@ void mergeCommunities(int c1Index, int c2Index, int timeslot){
 
 	cout << "Finished Merging" << endl;
 	*/
+	cout << "SD: 4 " << L << endl;
+	cout << "SD: 4 " << R << endl;
+	cout << "SD: 3 " << c->nodeList.size() << endl;
 
 }
 /*********************************************************************/
@@ -1248,6 +1256,7 @@ void generateEvent(int timeslot){
 	}
 	else if (zz <= (probD + probB + probS)){
 		int minSplitSize = (int)(ceil(mmin/minSplitRatio));
+		cout << "minSplitRatio = " << minSplitRatio << ", mmin = " << mmin << ", minSplitSize = " << minSplitSize << endl;
 		clock_gettime(CLOCK_MONOTONIC,&start);
 		int commToSplit = -1, numCandidates = 0;
 		for (int i=0;i<N2;i++){
